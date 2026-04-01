@@ -8,7 +8,7 @@ A web-based tool built with **FastAPI** and **OpenCV** to visualize YOLO (You On
 ## ✨ Key Features
 
 * **FastAPI Backend**
-* * **Web Interface**
+* **Web Interface**
 * **Dual Visualization Modes**: Switch between Bounding Box and Instance Segmentation.
 * **Dockerized**: Fully containerized environment for consistent deployment across any OS.
 

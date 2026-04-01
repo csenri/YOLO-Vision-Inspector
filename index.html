@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YOLO Annotation Viewer</title>
+    <style>
+        /* Basic styling for layout and presentation */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            text-align: center;
+            background-color: #f9f9f9;
+        }
+        
+        /* Flexbox container to display images side by side */
+        .container {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 5px;
+            gap: 20px;
+        }
+        
+        /* Styling for the image placeholders */
+        .image-box {
+            background-color: #ffffff;
+            border: 2px dashed #cccccc;
+            border-radius: 8px;
+            padding: 15px;
+            width: 45%;
+            min-height: 400px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+        }
+        
+        /* Form styling */
+        form {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            display: inline-block;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+
+        select {
+            width: 100%;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            margin-top: 5px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+        }
+        
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>YOLO Geometry Explorer</h1>
+    
+    <form id="uploadForm">
+        <div class="form-group">
+            <label for="imageInput"><strong>Select Image:</strong></label><br>
+            <input type="file" id="imageInput" name="image" accept="image/*" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="annotationInput"><strong>Select Annotation (.txt):</strong></label><br>
+            <input type="file" id="annotationInput" name="annotation" accept=".txt" required>
+        </div>
+
+        <div class="form-group">
+            <label for="modeSelect"><strong>Visualization Mode:</strong></label><br>
+            <select id="modeSelect" name="mode">
+                <option value="box">Bounding Box</option>
+                <option value="segmentation">Instance Segmentation</option>
+            </select>
+        </div>
+        
+        <button type="submit" id="submitBtn">Process Image</button>
+    </form>
+
+    <div class="container">
+        <div class="image-box">
+            <h3>Original Image</h3>
+            <img id="originalPreview" style="display: none;" alt="Original preview">
+        </div>
+        <div class="image-box">
+            <h3>Processed Image</h3>
+            <img id="processedPreview" style="display: none;" alt="Processed preview">
+        </div>
+    </div>
+
+    <script>
+        // DOM elements
+        const form = document.getElementById('uploadForm');
+        const imageInput = document.getElementById('imageInput');
+        const annotationInput = document.getElementById('annotationInput');
+        const modeSelect = document.getElementById('modeSelect');
+        const originalPreview = document.getElementById('originalPreview');
+        const processedPreview = document.getElementById('processedPreview');
+        const submitBtn = document.getElementById('submitBtn');
+
+        // Display the original image locally before uploading
+        imageInput.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                originalPreview.src = URL.createObjectURL(file);
+                originalPreview.style.display = 'block';
+                processedPreview.style.display = 'none'; 
+            }
+        });
+
+        // Handle the API request when the form is submitted
+        form.addEventListener('submit', async function(event) {
+            event.preventDefault(); 
+            
+            if (!imageInput.files[0] || !annotationInput.files[0]) {
+                alert("Please select both an image and an annotation file.");
+                return;
+            }
+
+            submitBtn.textContent = "Processing...";
+            submitBtn.disabled = true;
+
+            const formData = new FormData();
+            formData.append('image', imageInput.files[0]);
+            formData.append('annotation', annotationInput.files[0]);
+            formData.append('mode', modeSelect.value); // Added mode selection
+
+            try {
+                const response = await fetch('/process-image/', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const imageBlob = await response.blob();
+                    const imageObjectURL = URL.createObjectURL(imageBlob);
+                    processedPreview.src = imageObjectURL;
+                    processedPreview.style.display = 'block';
+                } else {
+                    const errorData = await response.json();
+                    alert('Error: ' + (errorData.error || 'The server failed to process the image.'));
+                }
+            } catch (error) {
+                console.error('Network error occurred:', error);
+                alert('A network error occurred. Check if the FastAPI server is running.');
+            } finally {
+                submitBtn.textContent = "Process Image";
+                submitBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
